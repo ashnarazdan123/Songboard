@@ -7,6 +7,7 @@ if (!code) {
 } else {
     const accessToken = await getAccessToken(clientId, code);
     const profile = await fetchProfile(accessToken);
+    console.log(profile);
     populateUI(profile);}
 
  async function redirectToAuthCodeFlow(clientId: string) {
@@ -45,7 +46,7 @@ async function generateCodeChallenge(codeVerifier: string) {
         .replace(/=+$/, '');
 }
 
-export async function getAccessToken(clientId, code) {
+export async function getAccessToken(clientId: string, code: string): Promise<string> {
     const verifier = localStorage.getItem("verifier");
 
     const params = new URLSearchParams();
@@ -53,7 +54,7 @@ export async function getAccessToken(clientId, code) {
     params.append("grant_type", "authorization_code");
     params.append("code", code);
     params.append("redirect_uri", "http://127.0.0.1:5173/callback");
-    params.append("code_verifier", verifier);
+    params.append("code_verifier", verifier!);
 
     const result = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
