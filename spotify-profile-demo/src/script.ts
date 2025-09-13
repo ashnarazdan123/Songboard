@@ -10,7 +10,7 @@ if (!code) {
     populateUI(profile);
 }
 
-async function redirectToAuthCodeFlow(clientId) {
+async function redirectToAuthCodeFlow(clientId: string) {
     const verifier = generateCodeVerifier(128);
     const challenge = await generateCodeChallenge(verifier);
 
@@ -27,7 +27,7 @@ async function redirectToAuthCodeFlow(clientId) {
     document.location = `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
-function generateCodeVerifier(length) {
+function generateCodeVerifier(length: number) {
     let text = '';
     let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -37,7 +37,7 @@ function generateCodeVerifier(length) {
     return text;
 }
 
-async function generateCodeChallenge(codeVerifier) {
+async function generateCodeChallenge(codeVerifier: string) {
     const data = new TextEncoder().encode(codeVerifier);
     const digest = await window.crypto.subtle.digest('SHA-256', data);
     return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)]))
@@ -46,14 +46,14 @@ async function generateCodeChallenge(codeVerifier) {
         .replace(/=+$/, '');
 }
 
-async function getAccessToken(clientId, code) {
+async function getAccessToken(clientId: string, code: string) {
   // TODO: Get access token for code
 }
 
-async function fetchProfile(token) {
+async function fetchProfile(token: string): Promise<any> {
     // TODO: Call Web API
 }
 
-function populateUI(profile) {
+function populateUI(profile: any) {
     // TODO: Update UI with profile data
 }
