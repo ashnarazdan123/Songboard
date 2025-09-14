@@ -7,8 +7,31 @@ if (!code) {
 } else {
     const accessToken = await getAccessToken(clientId, code);
     const profile = await fetchProfile(accessToken);
-    populateUI(profile);}
+    populateUI(profile);
+    //const player = await fetchPlayer(accessToken);
+    //populateUI(profile, player);
+    let lastPlayerState: any = null; //stores prev data to avoid constant changing when data isn't updating
+    //to update data every second 
+    setInterval(async () => {
+        try{
+            const player = await fetchPlayer(accessToken);
 
+            if (
+                !lastPlayerState ||                                  //if no lastPlayerState
+                player?.item?.name !==lastPlayerState?.item?.name || //if new song
+                player?.progress_ms !== lastPlayerState?.progress_ms //if song progress changed (it's playing)
+            ) { //update and store new state
+                populateUIPlayback(player);
+                lastPlayerState = player;
+            }
+        } catch (err) {
+            console.error('Failed to fetch player:', err);
+        }
+    }, 1000);
+}
+
+
+//functions for authorizing account access
  async function redirectToAuthCodeFlow(clientId: string) {
     const verifier = generateCodeVerifier(128);
     const challenge = await generateCodeChallenge(verifier);
@@ -19,7 +42,7 @@ if (!code) {
     params.append("client_id", clientId);
     params.append("response_type", "code");
     params.append("redirect_uri", "http://127.0.0.1:5173/callback");
-    params.append("scope", "user-read-private user-read-email");
+    params.append("scope", "user-read-private user-read-email user-read-playback-state");
     params.append("code_challenge_method", "S256");
     params.append("code_challenge", challenge);
 
@@ -45,6 +68,7 @@ async function generateCodeChallenge(codeVerifier: string) {
         .replace(/=+$/, '');
 }
 
+//get access token for fetching data from API
 export async function getAccessToken(clientId: string, code: string): Promise<string> {
     const verifier = localStorage.getItem("verifier");
 
@@ -73,6 +97,16 @@ async function fetchProfile(token: string): Promise<any> {
     return await result.json();
 }
 
+async function fetchPlayer(token: string): Promise<any> {
+    const result = await fetch("https://api.spotify.com/v1/me/player", {
+        method: "GET", headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (result.status === 204) return null; //if nothing playing
+
+    return await result.json();
+}
+
 function populateUI(profile: any) {
     document.getElementById("displayName")!.innerText = profile.display_name;
     if (profile.images[0]) {
@@ -86,5 +120,22 @@ function populateUI(profile: any) {
     document.getElementById("uri")!.setAttribute("href", profile.external_urls.spotify);
     document.getElementById("url")!.innerText = profile.href;
     document.getElementById("url")!.setAttribute("href", profile.href);
-    document.getElementById("imgUrl")!.innerText = profile.images[0]?.url ?? '(no profile image)';
+    document.getElementById("imgUrl")!.innerText = profile.images[0]?.url ?? '(no profile image)'; //? = "if it exists, else do stuff after '??'"
+}
+
+//populate song info separately (avoids needing to reupdate any profile info on screen)
+function populateUIPlayback(player: any) {
+    document.getElementById("songName")!.innerText = player?.item? `${player.item.name} - ${player.item.artists[0].name}`: 'No song currently playing.';
+    if (player?.item) {
+        document.getElementById("progressLi")!.style.display = 'list-item';
+        document.getElementById("progress")!.innerText = `${formatTime(player.progress_ms)} / ${formatTime(player.item.duration_ms)}`; //backticks = f-string but for TS
+    } else {
+        document.getElementById("progressLi")!.style.display = 'none';
+    }
+}
+
+function formatTime(ms: number) { //into mm:ss
+    let seconds = Math.floor(ms / 1000);
+    let time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    return time;
 }
